@@ -1,1 +1,55 @@
-org 0x7C00jmp word boot; Данные начального загрузчикаlabel disk_id byte at $$boot_msg db "MyOS boot loader. Version 0.04",13,10,0reboot_msg db "Press any key...",13,10,0; Вывод строки DS:SI на экранwrite_str:	push ax si	mov ah, 0x0E@@:	lodsb	test al, al	jz @f	int 0x10	jmp @b@@:	pop si ax	ret; Критическая ошибкаerror:	pop si	call write_str; Перезагрузкаreboot:	mov si, reboot_msg	call write_str	xor ah, ah	int 0x16	jmp 0xFFFF:0; Точка входа в начальный загрузчикboot:	; Настроим сегментные регистры	jmp 0:@f@@:	mov ax, cs	mov ds, ax	mov es, ax	; Настроим стек	mov ss, ax	mov sp, $$	; Разрешим прерывания	sti	; Запомним номер загрузочного диска	mov [disk_id], dl	; Выводим приветственное сообщение	mov si, boot_msg	call write_str	; Завершение	jmp reboot; Пустое пространство и сигнатураrb 510 - ($ - $$)db 0x55,0xAA
+org 0x7C00
+jmp word boot
+
+; Р”Р°РЅРЅС‹Рµ РЅР°С‡Р°Р»СЊРЅРѕРіРѕ Р·Р°РіСЂСѓР·С‡РёРєР°
+label disk_id byte at $$
+boot_msg db "MyOS boot loader. Version 0.04",13,10,0
+reboot_msg db "Press any key...",13,10,0
+
+; Р’С‹РІРѕРґ СЃС‚СЂРѕРєРё DS:SI РЅР° СЌРєСЂР°РЅ
+write_str:
+	push ax si
+	mov ah, 0x0E
+@@:
+	lodsb
+	test al, al
+	jz @f
+	int 0x10
+	jmp @b
+@@:
+	pop si ax
+	ret
+; РљСЂРёС‚РёС‡РµСЃРєР°СЏ РѕС€РёР±РєР°
+error:
+	pop si
+	call write_str
+; РџРµСЂРµР·Р°РіСЂСѓР·РєР°
+reboot:
+	mov si, reboot_msg
+	call write_str
+	xor ah, ah
+	int 0x16
+	jmp 0xFFFF:0
+; РўРѕС‡РєР° РІС…РѕРґР° РІ РЅР°С‡Р°Р»СЊРЅС‹Р№ Р·Р°РіСЂСѓР·С‡РёРє
+boot:
+	; РќР°СЃС‚СЂРѕРёРј СЃРµРіРјРµРЅС‚РЅС‹Рµ СЂРµРіРёСЃС‚СЂС‹
+	jmp 0:@f
+@@:
+	mov ax, cs
+	mov ds, ax
+	mov es, ax
+	; РќР°СЃС‚СЂРѕРёРј СЃС‚РµРє
+	mov ss, ax
+	mov sp, $$
+	; Р Р°Р·СЂРµС€РёРј РїСЂРµСЂС‹РІР°РЅРёСЏ
+	sti
+	; Р—Р°РїРѕРјРЅРёРј РЅРѕРјРµСЂ Р·Р°РіСЂСѓР·РѕС‡РЅРѕРіРѕ РґРёСЃРєР°
+	mov [disk_id], dl
+	; Р’С‹РІРѕРґРёРј РїСЂРёРІРµС‚СЃС‚РІРµРЅРЅРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ
+	mov si, boot_msg
+	call write_str
+	; Р—Р°РІРµСЂС€РµРЅРёРµ
+	jmp reboot
+; РџСѓСЃС‚РѕРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРѕ Рё СЃРёРіРЅР°С‚СѓСЂР°
+rb 510 - ($ - $$)
+db 0x55,0xAA
