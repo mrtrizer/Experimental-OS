@@ -35,7 +35,6 @@ int main (int argc, char **argv)
         return 1;
     }
 
-    char * buff;
     ifstream::pos_type size = 0;
 
     if(f.seekg(0, std::ios::end))
@@ -46,20 +45,22 @@ int main (int argc, char **argv)
 		cout << "File is empty" << endl;
 		return 2;
 	}
-	
-    if(size && f.seekg(0, std::ios::beg))
-    {
-       buff = new char[size];
-       f.read(&buff[0], size);
-    }	
+
+    if(!f.seekg(0, std::ios::beg)) {
+        cout << "Seek in file is filed!" << endl;
+        return 3;
+    }
+
+    char * buff  = new char[size];
+    f.read(&buff[0], size);
 
     cout<< "File size: " << size << endl;
 
-    VDriveController driveController(buff,size);
+    VDriveController driveController(buff, static_cast<size_t>(size));
     FatController fatController(&driveController);
-    Dir* rootDir = fatController.getDir("/DIR2/");
+    Dir* rootDir = fatController.getDir("/");
     vector<File*> files = rootDir->getFileList();
-    for (int i = 0; i < files.size(); i++)
+    for (size_t i = 0; i < files.size(); i++)
     {
         if (files[i]->attr.dirrectory)
             cout << files[i]->shortName << " " << "DIR" <<endl;

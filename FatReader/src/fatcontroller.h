@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#define FAT_CONTROLLER_DEBUG;
+#define FAT_CONTROLLER_DEBUG
 #define PROPERTY_GET(property,type,func) type func(){return property;}
 
 class Dir;
@@ -60,7 +60,7 @@ private:
 
     BootStruct * bootStruct;
     FATType fatType;
-    int clusterCount;
+    size_t clusterCount;
     uint32_t firstClasterSector;
     uint32_t sectorSize;
     uint32_t clusterSize;

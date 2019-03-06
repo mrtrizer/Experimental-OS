@@ -43,7 +43,7 @@ private:
     File(FatController * fatController, uint8_t attr, uint32_t firstCluster, uint32_t size);
     ~File();
     FatController * fatController;
-    int findCluster(int n);
+    uint32_t findCluster(uint32_t n);
 };
 
 #endif // FILE_H

@@ -3,16 +3,18 @@
 
 #include "drivecontroller.h"
 
+#include <cstddef>
+
 class VDriveController: public DriveController
 {
 public:
-    VDriveController(char * buff, unsigned int size);
-    char * readSector(int n);
-    char * readSectors(int start, int length);
+    VDriveController(char * buff, size_t size);
+    char * readSector(uint32_t n);
+    char * readSectors(uint32_t start, uint32_t length);
 
 private:
     char * buff;
-    unsigned int buffSize;
+    size_t buffSize;
 };
 
 #endif // DRIVECONTROLLER_H

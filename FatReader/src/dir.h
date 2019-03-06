@@ -12,7 +12,7 @@ public:
     Dir(FatController *fatController, char * buff, uint32_t length);
     ~Dir();
     std::vector<File *> getFileList(){return files;}
-    File * searchFile(std::string &name, uint32_t attrMask);
+    File * searchFile(const std::string &name, uint32_t attrMask);
 
 private:
     std::vector<File *> files;

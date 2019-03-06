@@ -6,8 +6,8 @@ using namespace std;
 File::File(FatController * fatController, uint8_t attr, uint32_t firstCluster, uint32_t size)
 {
     this->fatController = fatController;
-    clusters = 0;
-    this->attr = *((Attr *)&attr);
+    clusters = nullptr;
+    this->attr = *(reinterpret_cast<Attr *>(&attr));
     this->firstCluster = firstCluster;
     this->size = size;
     this->sectorCount = this->size / fatController->sectorSize
@@ -16,7 +16,7 @@ File::File(FatController * fatController, uint8_t attr, uint32_t firstCluster, u
 
 File::~File()
 {
-    if (clusters != 0)
+    if (clusters != nullptr)
         close();
 }
 
@@ -35,7 +35,7 @@ void File::setFullName(string fullName)
 //При открытии файла читаются цепочки кластеров, для того, что бы затем иметь быстрый доступ к ним.
 int File::open()
 {
-    if (clusters != 0)
+    if (clusters != nullptr)
         return 1; //Уже открыт
     clusters = new vector<FatCluster *>;
     if (firstCluster == 0)
@@ -66,18 +66,19 @@ int File::open()
 
 int File::close()
 {
-    if (clusters == 0)
+    if (clusters == nullptr)
         return 1;
-    for (int i = 0; i < clusters->size(); i++)
+    for (size_t i = 0; i < clusters->size(); i++)
         delete (*clusters)[i];
     delete clusters;
-    clusters = 0;
+    clusters = nullptr;
+    return 0;
 }
 
 //Чтение файла. С определенного смещения.
 int File::read(uint32_t offset, uint32_t n, char * buff)
 {
-    if (clusters == 0)
+    if (clusters == nullptr)
         return 1; //Не открыт
     if (clusters->size() == 0)
         return 2; //Пустой файл
@@ -102,10 +103,10 @@ int File::read(uint32_t offset, uint32_t n, char * buff)
     return 0;
 }
 
-int File::findCluster(int n)
+uint32_t File::findCluster(uint32_t n)
 {
-    for (int i = 0; i < clusters->size(); i++)
+    for (size_t i = 0; i < clusters->size(); i++)
         if ((*clusters)[i]->index == n)
-            return i;
-    return -1;
+            return static_cast<uint32_t>(i);
+    return std::numeric_limits<uint32_t>::max();
 }

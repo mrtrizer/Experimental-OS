@@ -27,9 +27,9 @@ FatController::FatController(DriveController * controller) //создает др
 {
     this->driveController = controller;
     char * buff = controller->readSector(0); //читаем в буфер нулевой сектор
-    bootStruct = (BootStruct *) buff;
+    bootStruct = reinterpret_cast<BootStruct *>(buff);
     //проверка компилятора.
-    if (TRUE_STRUCTURE != (intptr_t) &(bootStruct->BPB_NumFATs) - (intptr_t)bootStruct)
+    if (TRUE_STRUCTURE != reinterpret_cast<intptr_t>(&(bootStruct->BPB_NumFATs)) - reinterpret_cast<intptr_t>(bootStruct))
     {
         cout << "BAD STUCTURE. See compiler's directives." << endl;
         throw bad_structure();
@@ -45,7 +45,7 @@ void FatController::fatInit(char * buff)
     uint32_t DataSec;
     uint32_t RootDirSectors;
     uint32_t CountOfClusters;
-    bootStruct = (BootStruct *) buff;
+    bootStruct = reinterpret_cast<BootStruct *>(buff);
 
     //Определение размера корневой дирректории
     RootDirSectors = ((bootStruct->BPB_RootEntCnt * 32) + (bootStruct->BPB_BytsPerSec - 1)) / bootStruct->BPB_BytsPerSec;
@@ -93,7 +93,7 @@ void FatController::fatInit(char * buff)
 //Читает данные кластера
 int FatController::readCluster(FatCluster * cluster)
 {
-    if (cluster->data != 0)
+    if (cluster->data != nullptr)
         return 1; //Уже прочитан
     if (cluster->index > clusterCount)
         return 2; //Выход за границы
@@ -101,11 +101,10 @@ int FatController::readCluster(FatCluster * cluster)
     return 0;
 }
 
-//Получить указатель на файл по пути
 File * FatController::getFile(string path)
 {
     string fileName;
-    for (int i = path.length() - 1; i > 0; i--)
+    for (size_t i = path.length() - 1; i > 0; i--)
         if (path[i] == '/')
         {
             fileName = path.c_str() + i + 1;
@@ -113,39 +112,36 @@ File * FatController::getFile(string path)
             break;
         }
     Dir * dir = getDir(path);
-    //Затем в каталоге найти файл Dir::searhFile(ИМЯ);
+
     File * file = new File(*(dir->searchFile(fileName,0xFF)));
     return file;
-    //return 0;
 }
 
-//Получить дирректорию по пути
 Dir * FatController::getDir(string path)
 {
-    int i, j;
+    size_t i;
     string fileName;
     string *name;
     char * dirBuff;
-    name = (string*)malloc(sizeof(string)*sizeof(path));
-    if (path == "/") //Заглушка для корневой дирректории
+    name = static_cast<string*>(malloc(sizeof(string)*sizeof(path)));
+    if (path == "/")
         return getRootDir();
-    //Разделить строку на составляющие и прочитать корневую дирректорию
+
     Dir * currentDir = getRootDir();
-    currentDir->files.erase(currentDir->files.begin()); //Убирает первый, незначимый файл в корне
+    currentDir->files.erase(currentDir->files.begin());
     i = 1;
-    while (i != path.length())  //пока не прошли всю строку
+    for (size_t i = 1; i != path.length(); i++)
     {
-        if (path[i] != '/') //если нет признака разделения каталогов
+        if (path[i] != '/')
         {
-            fileName += path[i]; //складываем символы
-            i++;
+            fileName += path[i];
             continue;
         }
         File * file = currentDir->searchFile(fileName,0x10);
-        if (file == NULL) //получаем слово, если такого нет, то
+        if (file == nullptr)
         {
             cout << "\nDirrectory not found. Dirrectory: " << fileName << endl;
-            return 0;
+            return nullptr;
         }
         try
         {
@@ -154,31 +150,27 @@ Dir * FatController::getDir(string path)
         catch (File::bad_fat_item)
         {
             cout << "\nFile open error. File: " << fileName << endl;
-            return 0;
+            return nullptr;
         }
 
         dirBuff = new char[file->sectorCount * sectorSize];
         file->read(0,file->sectorCount * sectorSize,dirBuff);
-        //УТЕЧКА ПАМЯТИ!!!!!!! Надо придумать механизм, вроде сохранеия дерева каталогов
-        currentDir  = new Dir(this,dirBuff,file->sectorCount * sectorSize);
+        // FIXME: MEMORY LEAK!!!!
+        currentDir = new Dir(this,dirBuff,file->sectorCount * sectorSize);
         delete []dirBuff;
         fileName.clear();
-        i++;
-
-    } //последнее name[j] это и будет полученное имя файла в пройденных каталогах
+    }
     return currentDir;
 }
 
-//Получить корневую дирректорию +
 Dir * FatController::getRootDir()
 {
     if ((fatType == FAT12_T) || (fatType == FAT16_T))
     {
-        //УТЕЧКА
+        // FIXME: MEMORY LEAK!!!
         return new Dir(this, driveController->readSectors(firstRootSector,32), 32 * sectorSize);
     }
-
-
+    return nullptr;
 }
 
 //Выдает смещение относительно начала Fat таблицы -
@@ -214,13 +206,13 @@ uint32_t FatController::getFatOffset(uint32_t n)
     return FATOffset + 2;
 }
 
-//Устанавливает значение в таблицу фат (на будущее, если вдруг понадобится запись) -
-void FatController::setFatValue(uint32_t n, uint32_t value)
+// Set value into fat table for future usage
+void FatController::setFatValue(uint32_t, uint32_t)
 {
 
 }
 
-//Определение типа записи в фат-таблице для fat12
+// Detect record type
 FatController::FATNode FatController::fat12Type(uint16_t valueFat12)
 {
     if (valueFat12 == 0x0000)
@@ -233,6 +225,7 @@ FatController::FATNode FatController::fat12Type(uint16_t valueFat12)
         return FATNode(BAD);
     if (valueFat12 == 0x0FFF)
         return FATNode(END);
+    return FATNode(BAD_TYPE);
 }
 
 //Определение типа записи в фат-таблице для fat16
@@ -248,6 +241,7 @@ FatController::FATNode FatController::fat16Type(uint16_t valueFat16)
         return FATNode(BAD);
     if (valueFat16 == 0xFFFF)
         return FATNode(END);
+    return FATNode(BAD_TYPE);
 }
 
 //Определение типа записи в фат-таблице для fat32
@@ -263,6 +257,7 @@ FatController::FATNode FatController::fat32Type(uint32_t valueFat32)
         return FATNode(BAD);
     if (valueFat32 == 0x0FFFFFFF)
         return FATNode(END);
+    return FATNode(BAD_TYPE);
 }
 
 //Получить значение из фат таблицы в общем для fat12 fat16 и fat32 виде -
@@ -274,14 +269,14 @@ FatController::FATNode FatController::getFatValue(uint32_t n)
     uint32_t sector = reservedSectCount + (offsetFatT / sectorSize);
     uint32_t offset = offsetFatT % sectorSize;
 
-    char * buff = driveController->readSector(sector);
+    char* buff = driveController->readSector(sector);
 
     switch (fatType)
     {
     case FAT12_T:
     {
         uint16_t valueFat12;
-        valueFat12 = *((uint16_t *) (buff + offset));
+        valueFat12 = *(reinterpret_cast<uint16_t *> (buff + offset));
         if((n % 2))
             valueFat12 = (valueFat12 >> 4) & 0x0FFF;
         else
@@ -289,26 +284,22 @@ FatController::FATNode FatController::getFatValue(uint32_t n)
 
         return fat12Type(valueFat12);
     }
-    break;
     case FAT16_T:
     {
         uint16_t valueFat16;
-        valueFat16 = *((uint16_t *) buff  + offset);
+        valueFat16 = *(reinterpret_cast<uint16_t *>(buff)  + offset);
         return fat16Type(valueFat16);
     }
-    break;
     case FAT32_T:
     {
         uint32_t valueFat32;
-        valueFat32 = (*((uint32_t *) buff + offset)) & 0x0FFFFFFF;
+        valueFat32 = (*(reinterpret_cast<uint32_t *>(buff) + offset)) & 0x0FFFFFFF;
         return fat32Type(valueFat32);
     }
-    break;
     }
     return FATNode();
 }
 
-//Отладочная функция
 #ifdef FAT_CONTROLLER_DEBUG
 void FatController::printDebugInfo()
 {
@@ -326,7 +317,7 @@ void FatController::printDebugInfo()
     fileList[1]->read(0,100,fileBuff);
     Tools::printDump((unsigned char *)fileBuff,100);
 
-    for (int i = 0; i < fileList.size(); i++)
+    for (size_t i = 0; i < fileList.size(); i++)
     {
         cout << fileList[i]->shortName << endl;
     }

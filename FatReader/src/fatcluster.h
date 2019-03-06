@@ -8,7 +8,7 @@ class FatCluster
 public:
     FatCluster(uint32_t index);
     char * data;
-    int index;
+    uint32_t index;
 };
 
 #endif // FATCLUSTER_H

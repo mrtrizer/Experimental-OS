@@ -1,15 +1,17 @@
 #ifndef DRIVECONTROLLER_H
 #define DRIVECONTROLLER_H
 
+#include <cinttypes>
+
 class DriveController
 {
 public:
-    DriveController(){sectorSize = 512;}
-    virtual char * readSector(int n) = 0;
-    virtual char * readSectors(int start, int length) = 0;
-    virtual void setSectorSize(int size){sectorSize = size;}
+    virtual ~DriveController() = default;
+    virtual char * readSector(uint32_t n) = 0;
+    virtual char * readSectors(uint32_t start, uint32_t length) = 0;
+    virtual void setSectorSize(unsigned size){sectorSize = size;}
 protected:
-    int sectorSize;
+    unsigned sectorSize = 512;
 };
 
 #endif // DRIVECONTROLLER_H

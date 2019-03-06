@@ -39,15 +39,15 @@ Dir::Dir(FatController * fatController, char *buff, uint32_t length)
 
 Dir::~Dir()
 {
-    for(int i = 0; i < files.size(); i++)
+    for(size_t i = 0; i < files.size(); i++)
         delete files[i];
 }
 
-File * Dir::searchFile(string & name, uint32_t attrMask)
+File * Dir::searchFile(const string & name, uint32_t attrMask)
 {
-    for(int i = 0; i < files.size(); i++)
+    for(size_t i = 0; i < files.size(); i++)
         if ((files[i]->shortName == name) &&
                 (*((uint32_t*)(&files[i]->attr)) & attrMask))
             return files[i];
-    return 0;
+    return nullptr;
 }

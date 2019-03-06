@@ -1,20 +1,19 @@
 #include "vdrivecontroller.h"
-#include <inttypes.h>
 
-VDriveController::VDriveController(char * buff, unsigned int size) //создает контроллер виртуального диска
+VDriveController::VDriveController(char * buff, size_t size)
 {
     sectorSize = 512;
     this->buff = buff;
     buffSize = size;
 }
 
-char * VDriveController::readSector(int n) //чтение секторов
+char * VDriveController::readSector(uint32_t n)
 {
     uint32_t offset = n * sectorSize;
-    return buff + offset; //буфер + смещение
+    return buff + offset;
 }
 
-char * VDriveController::readSectors(int start, int length)
+char * VDriveController::readSectors(uint32_t start, uint32_t)
 {
     uint32_t offset = start * sectorSize;
     return buff + offset;
