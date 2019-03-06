@@ -1,0 +1,15 @@
+00100000 T _start
+00100004 t multibootHeader
+00100010 t multibootInit
+0010001f t loop
+00100024 T main
+001000c8 T clr
+001000f6 T print
+001001af T printf
+001001b4 T printInt
+001002ab T printRegs32
+00102000 D curPos
+00102004 B __bss_start
+00102004 D _edata
+00102010 B stack
+00102410 B _end
